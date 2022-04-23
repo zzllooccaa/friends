@@ -17,6 +17,10 @@ def get_user_from_header(session_id: str = Header(None)):
     )
 
 
+################
+# AUTHENTICATE #
+################
+
 def auth_user(user, roles):
     """if"""
     if user.role.name not in roles:

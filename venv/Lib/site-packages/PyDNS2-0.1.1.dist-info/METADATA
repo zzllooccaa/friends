@@ -1,0 +1,16 @@
+Metadata-Version: 2.1
+Name: PyDNS2
+Version: 0.1.1
+Summary: UNKNOWN
+Home-page: https://github.com/jonatan1609/PyDNS2
+Author: Jonathan
+Author-email: pybots.il@gmail.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Topic :: Internet :: Name Service (DNS)
+Classifier: Topic :: System :: Networking
+Requires-Python: >=3.5
+Description-Content-Type: text/markdown
+
+# PyDNS2
+

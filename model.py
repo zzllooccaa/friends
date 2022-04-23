@@ -1,6 +1,6 @@
 from _datetime import date
 from json import JSONEncoder
-# from fastapi_pagination import paginate
+from fastapi_pagination import paginate
 from dotenv import load_dotenv
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Enum, extract
@@ -17,7 +17,6 @@ import datetime
 
 DATABASE_URL = 'postgresql://postgres:myPassword@localhost:5432/friends'
 
-
 engine = create_engine(
     DATABASE_URL, json_serializer=lambda obj: simplejson.dumps(obj)
 )
@@ -29,9 +28,11 @@ load_dotenv('.env')
 
 
 ########################################################
+# python model.py db init                              #
+# python model.py db migrate                           #
 # export PYTHONPATH=.                                  #
 # alembic upgrade head                                 #
-# alembic revision --autogenerate -m "user_phone_add"  #
+# alembic revision --autogenerate -m "first migration" #
 # alembic upgrade head                                 #
 ########################################################
 
@@ -39,6 +40,9 @@ load_dotenv('.env')
 ##############################
 # ENUM USER AND TYPE OFF PAY #
 ##############################
+class LikeUnlike(str, enum.Enum):
+    Like = 'Like'
+    Unlike = 'Unlike'
 
 
 class Role(str, enum.Enum):
@@ -54,6 +58,10 @@ class BaseModels(object):
     @declared_attr
     def date_of_creation(self):
         return Column(DateTime(), default=datetime.datetime.today())
+
+    @declared_attr
+    def deleted(self):
+        return Column(Boolean, default=False)
 
     @classmethod
     def get_by_id(cls, id):
@@ -90,12 +98,37 @@ class User(Base, BaseUser, JSONEncoder):
     __tablename__ = 'user'
 
     holiday = Column(String)
+    date_of_birth = Column(DateTime, nullable=False)
     password = Column(String, nullable=False)
     role = Column(Enum(Role), default=Role.users)  # Enum polje
     session_id = Column(String(100))
-    jmbg = Column(String, unique=True)
-    deleted = Column(Boolean, default=False)
     hashed_password = Column(String(150))
+    block = Column(Boolean, default=False)
+
+    #####################
+    # GET USER BY EMAIL #
+    #####################
+
+    @classmethod
+    def get_user_by_email(cls, email):
+        return db.query(cls) \
+            .filter(cls.email == email, ~cls.deleted) \
+            .first()
+
+    @classmethod
+    def get_user_by_email_and_password(cls, email, password):
+        return db.query(cls) \
+            .filter(cls.email == email, cls.password == password, ~cls.deleted) \
+            .first()
+
+    @classmethod
+    def get_by_session_id(cls, session_id):
+        return db.query(cls).filter(cls.session_id == session_id, ~cls.deleted).first()
+
+    @classmethod
+    def edit_user(cls, user_id, user_data):
+        return db.query(cls).filter(cls.id == user_id, ~cls.deleted) \
+            .update(user_data, synchronize_session=False)
 
 
 class Posts(Base, BaseModels, JSONEncoder):
@@ -103,14 +136,28 @@ class Posts(Base, BaseModels, JSONEncoder):
 
     post_content = Column(Text)
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    numbers_of_likes = Column(Integer)
-    numbers_of_comments = Column(Integer)
+    numbers_of_likes = Column(Integer, default=0)
+    numbers_of_comments = Column(Integer, default=0)
+
+    comm_a = relationship('Comments')
+
+    @classmethod
+    def get_all_posts(cls):
+        return db.query(cls).filter(~cls.deleted).all()
+
+    @classmethod
+    def get_posts_by_id(cls, id):
+        return db.query(cls) \
+            .join(Comments, Comments.post_id == Posts.id) \
+            .filter(cls.id == id, ~cls.deleted) \
+            .options(joinedload(cls.comm_a)).all()
 
 
 class Comments(Base, BaseModels, JSONEncoder):
     __tablename__ = 'comments'
 
     comment_content = Column(Text)
+    numbers_of_likes = Column(Integer, default=0)
     post_id = Column(Integer, ForeignKey('posts.id'), nullable=False)
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
 
@@ -123,108 +170,7 @@ class Like(Base, BaseModels, JSONEncoder):
 
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
     post_id = Column(Integer, ForeignKey('posts.id'), nullable=False)
-    like = Column(Boolean, default=False)
 
     user_a = relationship('User', viewonly=True, foreign_keys="Like.user_id")
     post_a = relationship('Posts', viewonly=True, foreign_keys="Like.post_id")
 
-########################
-# GET REVIEW BY DOCTOR #
-########################
-
-# @classmethod
-# def get_review_by_doctor_paginate(cls, name):
-#     return db.query(cls) \
-#         .join(Review, Review.doctor_id == User.id) \
-#         .filter(User.name.ilike('%' + name + '%'), ~cls.deleted) \
-#         .options(joinedload(cls.reviews)) \
-#         .order_by(cls.date_of_creation).all()
-
-# @classmethod
-# def get_by_session_id(cls, session_id):
-#     return db.query(cls).filter(cls.session_id == session_id, ~cls.deleted).first()
-#
-###############################
-# GET USER BY EMAIL & PASSWORD #
-###############################
-#
-# @classmethod
-# def get_user_by_email_and_password(cls, email, password):
-#     return db.query(cls) \
-#         .filter(cls.email == email, cls.password == password, ~cls.deleted) \
-#         .first()
-
-#####################
-# GET USER BY EMAIL #
-#####################
-
-# @classmethod
-# def get_user_by_email(cls, email):
-#     return db.query(cls) \
-#         .filter(cls.email == email, ~cls.deleted) \
-#         .first()
-
-###############################
-# GET USER BY hashed_password #
-###############################
-
-# @classmethod
-# def get_user_recover(cls, hashed_password):
-#     return db.query(cls) \
-#         .filter(cls.hashed_password == hashed_password, ~cls.deleted) \
-#         .first()
-
-#################################################
-# GET ALL USER SEARCHED BY EMAIL,NAME & SURNAME #
-#################################################
-
-# @classmethod
-# def get_all_user_paginate(cls, email, name):
-#     users = db.query(cls).filter(~cls.deleted)
-#     if email:
-#         users = users.filter(cls.email == email, ~User.deleted)
-#     if name:
-#         users = users.filter(cls.name == name, ~User.deleted)
-#
-#     return users.all()
-
-#########################################
-# CHECK USER BY EMAIL , JMBG & AND ROLE #
-#########################################
-
-# @classmethod
-# def check_user_by_email(cls, email):
-#     return db.query(cls).filter(cls.email == email, ~User.deleted).first()
-#
-# @classmethod
-# def check_user_by_jmbg(cls, jmbg):
-#     return db.query(cls).filter(cls.jmbg == jmbg, ~User.deleted).first()
-
-##################
-# UPDATE METHODS #
-##################
-# @classmethod
-# def edit_user(cls, user_id, user_data):
-#     print('USER DATA', user_data)
-#     return db.query(cls).filter(cls.id == user_id, ~cls.deleted) \
-#         .update(user_data, synchronize_session=False)
-#
-# @classmethod
-# def forgot_user(cls, email, user_data):
-#     db.query(cls).filter(cls.email == email, ~cls.deleted) \
-#         .update(user_data, synchronize_session=False)
-
-##################
-# GET USER BY ID #
-##################
-# @classmethod
-# def get_search_user(cls, names, by_ids, by_roles):
-#     users = db.query(cls)
-#     if names:
-#         users = users.filter(User.name.ilike('%' + names + '%'))
-#     if by_ids:
-#         users = users.filter(cls.id == by_ids)
-#     if by_roles:
-#         users = users.filter(cls.role == by_roles)
-#
-#     return paginate(users.order_by(cls.date_of_creation).all())
