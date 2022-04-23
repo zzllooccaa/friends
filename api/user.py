@@ -12,6 +12,7 @@ user_router = APIRouter()
 
 @user_router.post("/register")
 def register(item: schemas.RegisterUser, request: Request):
+    '''izvlaci ip od onog ko se registruje'''
     ip = request.client.host
     print(ip)
     check_email = item.email

@@ -1,3 +1,23 @@
+import requests
+import json
+
+apikey = '165d7e769fc14cc7aa07c13c6680bfb9'
+ipadress = '89.216.117.87'
+
+
+def get_api():
+    # response = requests.get("https://ipgeolocation.abstractapi.com/v1/?api_key=165d7e769fc14cc7aa07c13c6680bfb9")
+    response = requests.get(
+        "https://ipgeolocation.abstractapi.com/v1/?api_key=" + apikey + "& ip_address=" + ipadress + "&fields=country")
+    text_json = json.loads(response.text)
+    ''' izvlaci samo ime drzave'''
+    print(text_json['country'])
+
+
+
+get_api()
+
+
 # import reques
 # import json
 #
