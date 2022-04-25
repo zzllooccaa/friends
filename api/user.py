@@ -19,6 +19,7 @@ def register(item: schemas.RegisterUser, request: Request):
     validate_email(check_email, verify=True)
     if not validate_email:
         return HTTPException(status_code=400, detail=errors.ERR_MAIL_NOT_EXIST)
+    # save_mail = item.email
     if User.get_user_by_email(email=item.email):
         return HTTPException(status_code=400, detail=errors.ERR_MAIL_ALREADY_EXIST)
 

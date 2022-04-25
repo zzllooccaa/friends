@@ -62,11 +62,29 @@ def delete_post(post_id: int, current_user: User = Depends(get_user_from_header)
     post_del = Posts.get_by_id(id=post_id)
     if not post_del:
         return HTTPException(status_code=400, detail=errors.ERR_ID_NOT_EXIST)
+    if not post_del.user_id == current_user.id:
+        return HTTPException(status_code=400, detail=errors.ERR_USER_NOT_GRANTED)
     post_del.deleted = True
     db.add(post_del)
     db.commit()
 
     return {}
+
+
+@dashboard_router.patch("/update_post", status_code=200)
+def edit(posts_id: int, user_data: schemas.CreatePost, current_user: User = Depends(get_user_from_header)):
+    auth_user(user=current_user, roles=['users'])
+    post_db = Posts.get_by_id(id=posts_id)
+    if not post_db:
+        return HTTPException(status_code=400, detail=errors.ERR_ID_NOT_EXIST)
+    post_data_dic = user_data.dict(exclude_none=True)
+    if not post_db.user_id == current_user.id:
+        return HTTPException(status_code=400, detail=errors.ERR_USER_NOT_GRANTED)
+    Posts.edit_post(post_id=posts_id, user_data=post_data_dic)
+    db.add(post_db)
+    db.commit()
+    db.refresh(post_db)
+    return post_db
 
 
 @dashboard_router.post("/comment_posts", status_code=200)

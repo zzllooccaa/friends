@@ -152,6 +152,11 @@ class Posts(Base, BaseModels, JSONEncoder):
             .filter(cls.id == id, ~cls.deleted) \
             .options(joinedload(cls.comm_a)).all()
 
+    @classmethod
+    def edit_post(cls, post_id, user_data):
+        return db.query(cls).filter(cls.id == post_id, ~cls.deleted) \
+            .update(user_data, synchronize_session=False)
+
 
 class Comments(Base, BaseModels, JSONEncoder):
     __tablename__ = 'comments'
