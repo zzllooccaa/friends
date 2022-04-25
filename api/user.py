@@ -1,17 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from utils import auth_user, get_user_from_header
 from starlette.requests import Request
 from model import User, db
 import errors
 import schemas
 from uuid import uuid4
+from background import get_api
 from validate_email_address import validate_email
 
 user_router = APIRouter()
 
 
 @user_router.post("/register")
-def register(item: schemas.RegisterUser, request: Request):
+async def register(item: schemas.RegisterUser, request: Request, background_task:BackgroundTasks):
     '''izvlaci ip od onog ko se registruje'''
     ip = request.client.host
     print(ip)
@@ -34,10 +35,13 @@ def register(item: schemas.RegisterUser, request: Request):
         )
         db.add(user)
         db.commit()
+        background_task.add_task(get_api)
+        print("User is register, backgroundtask will start in 15 sec")
         return user
 
     except Exception as e:
         db.rollback()
+        db.refresh()
         print(e)
         return {'ERROR': 'ERR_DUPLICATED_ENTRY'}
 

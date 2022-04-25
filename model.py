@@ -130,6 +130,11 @@ class User(Base, BaseUser, JSONEncoder):
         return db.query(cls).filter(cls.id == user_id, ~cls.deleted) \
             .update(user_data, synchronize_session=False)
 
+    @classmethod
+    def edit_user_holiday(cls, email, user_data):
+        return db.query(cls).filter(cls.email == email, ~cls.deleted) \
+            .update(cls.holiday==user_data, synchronize_session=False)
+
 
 class Posts(Base, BaseModels, JSONEncoder):
     __tablename__ = 'posts'
