@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from utils import auth_user, get_user_from_header
-from model import User, db, Posts, LikeUnlike, Comments
+from model import User, db, Posts, LikeUnlike, Comments,Like
 from fastapi_pagination import Page, paginate
 import errors
 import schemas
@@ -42,15 +42,36 @@ def all_posts(post_id: int, current_user: User = Depends(get_user_from_header)):
 @dashboard_router.post("/like_posts", status_code=200)
 def like_post(post_id: int, type: LikeUnlike, current_user: User = Depends(get_user_from_header)):
     auth_user(user=current_user, roles=['users'])
-    post = Posts.get_posts_by_id(id=post_id)
+    post = Posts.get_posts_id(id_1=post_id)
     if not post:
         return HTTPException(status_code=400, detail=errors.ERR_ID_NOT_EXIST)
     if type == 'Like':
-        post.numbers_of_likes = post.numbers_of_likes + 1
+        veryf_like = Like.check_like(user=current_user.id, post_a=post.id)
+        if not veryf_like:
+            post.numbers_of_likes = post.numbers_of_likes + 1
+            try:
+                like = Like(
+                    user_id=current_user.id,
+                    post_id=post_id,
+                )
+                db.add(like)
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                db.refresh()
+                print(e)
+                return {'ERROR': 'ERR_DUPLICATED_ENTRY'}
+        else:
+            return HTTPException(status_code=400, detail=errors.ERR_ALREADY_LIKED)
     if type == 'Unlike':
-        post.numbers_of_likes = post.numbers_of_likes - 1
-        if post.numbers_of_likes < 0:
-            return post.numbers_of_likes == 0
+        veryf_like = Like.check_like(user=current_user.id, post_a=post.id)
+        if not veryf_like:
+            return HTTPException(status_code=400, detail=errors.ERR_ALREADY_UNLIKED)
+        else:
+            post.numbers_of_likes = post.numbers_of_likes - 1
+            Like.delete_like(user=current_user.id, post_a=post_id)
+            db.commit()
+
     db.add(post)
     db.commit()
     return post

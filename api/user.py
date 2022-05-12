@@ -102,16 +102,13 @@ def block_user(user_id: int, current_user: User = Depends(get_user_from_header))
 ###################
 
 @user_router.patch("/{user_id}", status_code=200)
-def delete_account(user_id: int, item: schemas.UserLogin, current_user: User = Depends(get_user_from_header)):
+def delete_account(user_id: int, current_user: User = Depends(get_user_from_header)):
     auth_user(user=current_user, roles=['admin'])
     user_num = User.get_by_id(id=user_id)
     if not user_num:
         return HTTPException(status_code=400, detail=errors.ERR_ID_NOT_EXIST)
-    user = User.get_user_by_email_and_password(email=item.email, password=item.password)
-    if not user:
-        raise HTTPException(status_code=400, detail=errors.WRONG_CREDENTIALS)
-    user.deleted = True
-    db.add(user)
+    user_num.deleted = True
+    db.add(user_num)
     db.commit()
 
     return {}
@@ -125,15 +122,12 @@ def delete_account(user_id: int, item: schemas.UserLogin, current_user: User = D
 @user_router.post("/change_password", status_code=200)
 def change_password(user_pass: schemas.ChangePassword, current_user: User = Depends(get_user_from_header)):
     auth_user(user=current_user, roles=['users'])
-    user_auth = User.get_user_by_email(email=current_user.email)
-    if not user_auth:
-        return HTTPException(status_code=400, detail=errors.ERR_ID_NOT_EXIST)
     if user_pass.password != user_pass.retype_password:
         return HTTPException(status_code=400, detail=errors.ERR_PASSWORD_RETYPE)
-    user_auth.password = user_pass.password
-    db.add(user_auth)
+    auth_user.password = user_pass.password
+    db.add(auth_user)
     db.commit()
-    return user_auth
+    return auth_user
 
 
 ################
@@ -143,7 +137,6 @@ def change_password(user_pass: schemas.ChangePassword, current_user: User = Depe
 @user_router.patch("/user/{user_id}", status_code=200)
 def edit(user_id: int, user_data: schemas.UserUpdate, current_user: User = Depends(get_user_from_header)):
     auth_user(user=current_user, roles=['users'])
-
     user_db = User.get_by_id(id=user_id)
     if not user_db:
         return HTTPException(status_code=400, detail=errors.ERR_ID_NOT_EXIST)

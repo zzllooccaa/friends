@@ -12,7 +12,8 @@ ipadress = '89.216.117.87'
 save_mail = 'klinikaprojekat45@gmail.com'
 api_holiday = 'd32dcfe5-3229-479a-b90c-92aab6bae87b'
 
-
+""" Background task da na osnovu geolokacije dohvati odakle je user,\
+da proveri dal ima neki praznik i da ga upise u tabelu"""
 def get_api():
     time.sleep(15)
     # response = requests.get("https://ipgeolocation.abstractapi.com/v1/?api_key=165d7e769fc14cc7aa07c13c6680bfb9")

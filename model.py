@@ -1,6 +1,6 @@
-from _datetime import date
+
 from json import JSONEncoder
-from fastapi_pagination import paginate
+#from fastapi_pagination import paginate
 from dotenv import load_dotenv
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Enum, extract
@@ -151,6 +151,11 @@ class Posts(Base, BaseModels, JSONEncoder):
         return db.query(cls).filter(~cls.deleted).all()
 
     @classmethod
+    def get_posts_id(cls, id_1):
+        return db.query(cls).filter(cls.id == id_1, ~cls.deleted).first()
+
+
+    @classmethod
     def get_posts_by_id(cls, id):
         return db.query(cls) \
             .join(Comments, Comments.post_id == Posts.id) \
@@ -180,7 +185,24 @@ class Like(Base, BaseModels, JSONEncoder):
 
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
     post_id = Column(Integer, ForeignKey('posts.id'), nullable=False)
+    # comments_id = Column(Integer, ForeignKey('comments.id'), nullable=False)
 
     user_a = relationship('User', viewonly=True, foreign_keys="Like.user_id")
     post_a = relationship('Posts', viewonly=True, foreign_keys="Like.post_id")
+
+    @classmethod
+    def check_like(cls, user, post_a):
+        return db.query(cls) \
+            .filter(cls.user_id == user, ~cls.deleted, cls.post_id == post_a) \
+            .first()
+
+    @classmethod
+    def delete_like(cls, user, post_a):
+        return db.query(cls) \
+            .filter(cls.user_id == user, cls.post_id == post_a) \
+            .delete()
+
+
+
+
 
