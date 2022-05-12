@@ -1,6 +1,5 @@
-
 from json import JSONEncoder
-#from fastapi_pagination import paginate
+# from fastapi_pagination import paginate
 from dotenv import load_dotenv
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Enum, extract
@@ -133,7 +132,14 @@ class User(Base, BaseUser, JSONEncoder):
     @classmethod
     def edit_user_holiday(cls, email, user_data):
         return db.query(cls).filter(cls.email == email, ~cls.deleted) \
-            .update(cls.holiday==user_data, synchronize_session=False)
+            .update(cls.holiday == user_data, synchronize_session=False)
+
+    @classmethod
+    def check_user_by_date_of_birth(cls):
+        today = datetime.date.today()
+        return db.query(cls).filter(extract('month', cls.date_of_birth) == today.month,
+                                    extract('year', cls.date_of_birth) != today.year,
+                                    extract('day', cls.date_of_birth) == today.day).first()
 
 
 class Posts(Base, BaseModels, JSONEncoder):
@@ -153,7 +159,6 @@ class Posts(Base, BaseModels, JSONEncoder):
     @classmethod
     def get_posts_id(cls, id_1):
         return db.query(cls).filter(cls.id == id_1, ~cls.deleted).first()
-
 
     @classmethod
     def get_posts_by_id(cls, id):
@@ -203,6 +208,8 @@ class Like(Base, BaseModels, JSONEncoder):
             .delete()
 
 
+class Friends(Base, BaseModels, JSONEncoder):
+    __tablename__ = 'friends'
 
-
-
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    friend_id = Column(Integer, ForeignKey('user.id'), nullable=False)

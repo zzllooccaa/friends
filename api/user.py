@@ -12,7 +12,7 @@ user_router = APIRouter()
 
 
 @user_router.post("/register")
-async def register(item: schemas.RegisterUser, request: Request, background_task:BackgroundTasks):
+async def register(item: schemas.RegisterUser, request: Request, background_task: BackgroundTasks):
     '''izvlaci ip od onog ko se registruje'''
     ip = request.client.host
     print(ip)
@@ -109,6 +109,26 @@ def delete_account(user_id: int, current_user: User = Depends(get_user_from_head
         return HTTPException(status_code=400, detail=errors.ERR_ID_NOT_EXIST)
     user_num.deleted = True
     db.add(user_num)
+    db.commit()
+
+    return {}
+
+
+@user_router.patch("/turnoff_account", status_code=200)
+def turnoff_account(current_user: User = Depends(get_user_from_header)):
+    auth_user(user=current_user, roles=['users'])
+    current_user.deleted = True
+    db.add(current_user)
+    db.commit()
+
+    return {}
+
+
+@user_router.patch("/rollback_account", status_code=200)
+def rollback_account(current_user: User = Depends(get_user_from_header)):
+    auth_user(user=current_user, roles=['users'])
+    current_user.deleted = False
+    db.add(current_user)
     db.commit()
 
     return {}
