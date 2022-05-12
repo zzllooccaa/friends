@@ -135,7 +135,7 @@ class User(Base, BaseUser, JSONEncoder):
             .update(cls.holiday == user_data, synchronize_session=False)
 
     @classmethod
-    def git commit-m "Removed venv"check_user_by_date_of_birth(cls):
+    def check_user_by_date_of_birth(cls):
         today = datetime.date.today()
         return db.query(cls).filter(extract('month', cls.date_of_birth) == today.month,
                                     extract('year', cls.date_of_birth) != today.year,
